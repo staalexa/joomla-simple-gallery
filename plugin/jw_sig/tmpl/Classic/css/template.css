@@ -27,6 +27,11 @@ ul.sigFreeClassic li.sigFreeThumb a.sigFreeLink:hover img.sigFreeImg {display:bl
 ul.sigFreeClassic li.sigFreeThumb a.sigFreeLink:hover img.sigFreeImg {opacity:0.7;}
 ul.sigFreeClassic li.sigFreeThumb a.sigFreeLink:hover:after {position:absolute;top:50%;left:50%;margin:-24px 0 0 -24px;display:block;content:"";width:48px;height:48px;background:transparent url(../images/magnify_48x48_24.png) no-repeat;}
 
+.sigFreeImg {
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
 /* Print message shown on ?tmpl=component&print=1 */
 .sigFreePrintOutput {display:none;}
 

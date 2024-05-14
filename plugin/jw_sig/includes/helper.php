@@ -49,225 +49,36 @@ class SimpleImageGalleryHelper
 
         // Set the cache folder
         $cacheFolderPath = JPATH_SITE.'/cache/jw_sig';
-        if (file_exists($cacheFolderPath) && is_dir($cacheFolderPath)) {
-            // all OK
-        } else {
+        if (!file_exists($cacheFolderPath)) {
             mkdir($cacheFolderPath);
         }
 
         // Check if the source folder exists and read it
-        $srcFolder = JFolder::files($sitePath.$srcimgfolder);
+        $srcFolder = JFolder::files($sitePath.$srcimgfolder, '\.jpg|\.jpeg|\.png|\.gif|\.webp|\.mp4|\.webm', false, true);
 
         // Proceed if the folder is OK or fail silently
         if (!$srcFolder) {
-            return;
+            return false;
         }
 
-        // Loop through the source folder for images
-        $fileTypes = array('gif', 'jpg', 'jpeg', 'png', 'webp');
-
-        // Create an array of file types
-        $found = array();
-
-        // Create an array for matching files
-        foreach ($srcFolder as $srcImage) {
-            $fileInfo = pathinfo($srcImage);
-            if (array_key_exists('extension', $fileInfo) && in_array(strtolower($fileInfo['extension']), $fileTypes)) {
-                $found[] = $srcImage;
-            }
-        }
-
-        // Bail out if there are no images found
-        if (count($found) == 0) {
-            return;
-        }
-
-        // Sort array
-        sort($found);
-
-        // Initiate array to hold gallery
+        // Initialize the gallery array
         $gallery = array();
-
-        // Loop through the image file list
-        foreach ($found as $key => $filename) {
-
-            // Determine thumb image filename
-            if (strtolower(substr($filename, -4, 4)) == 'jpeg' || strtolower(substr($filename, -4, 4)) == 'webp') {
-                $thumbfilename = substr($filename, 0, -4).'jpg';
-            } elseif (strtolower(substr($filename, -3, 3)) == 'gif' || strtolower(substr($filename, -3, 3)) == 'jpg' || strtolower(substr($filename, -3, 3)) == 'png') {
-                $thumbfilename = substr($filename, 0, -3).'jpg';
+        foreach ($srcFolder as $srcFile) {
+            $ext = strtolower(JFile::getExt($srcFile));
+            if (in_array($ext, array('jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm'))) {
+                $gallery[] = (object) array(
+                    'filename' => basename($srcFile),
+                    'sourceImageFilePath' => $siteUrl.str_replace($sitePath, '', $srcFile),
+                    'thumbImageFilePath' => $siteUrl.str_replace($sitePath, '', $srcFile),
+                    'width' => $thb_width, // Example width
+                    'height' => $thb_height, // Example height
+                    'is_video' => in_array($ext, array('mp4', 'webm'))
+                );
             }
-
-            // Object to hold each image elements
-            $gallery[$key] = new JObject;
-
-            // Assign source image and path to a variable
-            $original = $sitePath.$srcimgfolder.'/'.$filename;
-
-            // Check if thumb image exists already
-            $thumbimage = $cacheFolderPath.'/'.$prefix.$gal_id.'_'.strtolower($this->cleanThumbName($thumbfilename));
-
-            if (file_exists($thumbimage) && is_readable($thumbimage) && (filemtime($thumbimage) + $cache_expire_time) > time()) {
-                // Do nothing
-            } else {
-                // Otherwise create the thumb image
-
-                // Begin by getting the details of the original
-                list($width, $height, $type) = getimagesize($original);
-
-                // Create an image resource for the original
-                switch ($type) {
-                    case 1:
-                        // GIF
-                        $source = imagecreatefromgif($original);
-                        break;
-                    case 2:
-                        // JPEG
-                        $source = imagecreatefromjpeg($original);
-                        break;
-                    case 3:
-                        // PNG
-                        $source = imagecreatefrompng($original);
-                        break;
-                    case 18:
-                        // WEBP
-                        if (version_compare(PHP_VERSION, '7.1.0', 'ge')) {
-                            $source = imagecreatefromwebp($original);
-                        } else {
-                            $source = null;
-                        }
-                        break;
-                    default:
-                        $source = null;
-                }
-
-                // Bail out if the image resource is not OK
-                if (!$source) {
-                    if (version_compare(JVERSION, '4', 'ge')) {
-                        $app = JFactory::getApplication();
-                        $app->enqueueMessage(JText::_('JW_PLG_SIG_ERROR_SRC_IMGS'), 'notice');
-                    } else {
-                        JError::raiseNotice('', JText::_('JW_PLG_SIG_ERROR_SRC_IMGS'));
-                    }
-                    return;
-                }
-
-                // Calculate thumbnails
-                $thumbnail = $this->thumbDimCalc($width, $height, $thb_width, $thb_height, $smartResize);
-
-                $thumb_width = $thumbnail['width'];
-                $thumb_height = $thumbnail['height'];
-
-                // Create an image resource for the thumbnail
-                $thumb = imagecreatetruecolor($thumb_width, $thumb_height);
-
-                // Create the resized copy
-                imagecopyresampled($thumb, $source, 0, 0, 0, 0, $thumb_width, $thumb_height, $width, $height);
-
-                // Convert and save all thumbs to .jpg
-                $success = imagejpeg($thumb, $thumbimage, $jpg_quality);
-
-                // Bail out if there is a problem in the GD conversion
-                if (!$success) {
-                    return;
-                }
-
-                // Remove the image resources from memory
-                imagedestroy($source);
-                imagedestroy($thumb);
-            }
-
-            // Assemble the image elements
-            $gallery[$key]->filename = $filename;
-            $gallery[$key]->sourceImageFilePath = $siteUrl.$srcimgfolder.'/'.$this->replaceWhiteSpace($filename);
-            $gallery[$key]->thumbImageFilePath = $siteUrl.'cache/jw_sig/'.$prefix.$gal_id.'_'.strtolower($this->cleanThumbName($thumbfilename));
-            $gallery[$key]->width = $thb_width;
-            $gallery[$key]->height = $thb_height;
         }
 
+        // Return the gallery array
         return $gallery;
-    }
-
-
-
-    /* ------------------ Helper Functions ------------------ */
-
-    // Calculate thumbnail dimensions
-    private function thumbDimCalc($width, $height, $thb_width, $thb_height, $smartResize)
-    {
-        if ($smartResize) {
-            // thumb ratio bigger that container ratio
-            if ($width / $height > $thb_width / $thb_height) {
-                // wide containers
-                if ($thb_width >= $thb_height) {
-                    // wide thumbs
-                    if ($width > $height) {
-                        $thumb_width = $thb_height * $width / $height;
-                        $thumb_height = $thb_height;
-                    }
-                    // high thumbs
-                    else {
-                        $thumb_width = $thb_height * $width / $height;
-                        $thumb_height = $thb_height;
-                    }
-                    // high containers
-                } else {
-                    // wide thumbs
-                    if ($width > $height) {
-                        $thumb_width = $thb_height * $width / $height;
-                        $thumb_height = $thb_height;
-                    }
-                    // high thumbs
-                    else {
-                        $thumb_width = $thb_height * $width / $height;
-                        $thumb_height = $thb_height;
-                    }
-                }
-            } else {
-                // wide containers
-                if ($thb_width >= $thb_height) {
-                    // wide thumbs
-                    if ($width > $height) {
-                        $thumb_width = $thb_width;
-                        $thumb_height = $thb_width * $height / $width;
-                    }
-                    // high thumbs
-                    else {
-                        $thumb_width = $thb_width;
-                        $thumb_height = $thb_width * $height / $width;
-                    }
-                    // high containers
-                } else {
-                    // wide thumbs
-                    if ($width > $height) {
-                        $thumb_width = $thb_height * $width / $height;
-                        $thumb_height = $thb_height;
-                    }
-                    // high thumbs
-                    else {
-                        $thumb_width = $thb_width;
-                        $thumb_height = $thb_width * $height / $width;
-                    }
-                }
-            }
-        } else {
-            if ($width > $height) {
-                $thumb_width = $thb_width;
-                $thumb_height = $thb_width * $height / $width;
-            } elseif ($width < $height) {
-                $thumb_width = $thb_height * $width / $height;
-                $thumb_height = $thb_height;
-            } else {
-                $thumb_width = $thb_width;
-                $thumb_height = $thb_height;
-            }
-        }
-
-        $thumbnail = array();
-        $thumbnail['width'] = round($thumb_width);
-        $thumbnail['height'] = round($thumb_height);
-
-        return $thumbnail;
     }
 
     // Replace white space

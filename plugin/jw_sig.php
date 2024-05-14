@@ -78,10 +78,10 @@ class plgContentJw_sig extends JPlugin
 
         if (version_compare(JVERSION, '2.5.0', 'ge')) {
             $pluginLivePath = $siteUrl.'/plugins/content/'.$this->plg_name.'/'.$this->plg_name;
-            $defaultImagePath = 'images';
+            $defaultImagePath = 'imagenes';
         } else {
             $pluginLivePath = $siteUrl.'/plugins/content/'.$this->plg_name;
-            $defaultImagePath = 'images/stories';
+            $defaultImagePath = 'imagenes/stories';
         }
 
         // Check if plugin is enabled
