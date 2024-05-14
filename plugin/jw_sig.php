@@ -21,7 +21,7 @@ class plgContentJw_sig extends JPlugin
     // JoomlaWorks reference parameters
     public $plg_name             = "jw_sig";
     public $plg_tag              = "gallery";
-    public $plg_version          = "4.2";
+    public $plg_version          = "4.3";
     public $plg_copyrights_start = "\n\n<!-- JoomlaWorks \"Simple Image Gallery\" Plugin (v4.2) starts here -->\n";
     public $plg_copyrights_end   = "\n<!-- JoomlaWorks \"Simple Image Gallery\" Plugin (v4.2) ends here -->\n\n";
 
