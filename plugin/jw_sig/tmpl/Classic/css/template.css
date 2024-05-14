@@ -33,6 +33,8 @@ ul.sigFreeClassic li.sigFreeThumb a.sigFreeLink:hover:after {position:absolute;t
     background-repeat: no-repeat;
 }
 
+.testing {}
+
 /* Print message shown on ?tmpl=component&print=1 */
 .sigFreePrintOutput {display:none;}
 
